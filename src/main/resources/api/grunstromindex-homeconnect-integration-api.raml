@@ -2,14 +2,14 @@
 title: gis-hc-integration-api
 description : This API will be used on chatbot integration to integrate grunindex and Homeconnect account
 baseUri: https://localhost:8081/gis-hc/v1
-/findDishwasherPrograms:
+/findAvailablePrograms:
   post:
     body:
       application/json:
         example:
           {
-            "accessToken" : "refresh-token",
-            "telegramUser" : "hayra"
+            "homeConnectDeviceId" : "deviceId",
+            "state" : "hayra"
           }
     responses:
       200:
