@@ -104,7 +104,7 @@ output application/json
             </on-error-propagate>
         </error-handler>
     </flow>
-	<flow name="grunstromindex-homeconnect-integration-api-console">
+    <flow name="grunstromindex-homeconnect-integration-api-console">
         <http:listener config-ref="grunstromindex-homeconnect-integration-api-httpListenerConfig" path="/console/*">
             <http:response statusCode="#[vars.httpStatus default 200]">
                 <http:headers>#[vars.outboundHeaders default {}]</http:headers>
@@ -131,81 +131,93 @@ output application/json
             </on-error-propagate>
         </error-handler>
     </flow>
-    <flow name="post:\checkHomeAppliances:application\json:grunstromindex-homeconnect-integration-api-config">
-        <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
-            <ee:message>
-                <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{
-  status: "200",
-  message: "success"
-}]]></ee:set-payload>
-            </ee:message>
-        </ee:transform>
-    </flow>
     <flow name="post:\setGrunStromEnergyForDevice:application\json:grunstromindex-homeconnect-integration-api-config">
-        <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
-            <ee:message>
-                <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{
-  status: "200",
-  message: "success"
-}]]></ee:set-payload>
-            </ee:message>
-        </ee:transform>
-    </flow>
-	<flow name="post:\findDishwasherPrograms:application\json:grunstromindex-homeconnect-integration-api-config">
-        <set-variable value="#[(payload.data.homeappliances filter $[&quot;type&quot;] == &quot;Dishwasher&quot;)[0]]" doc:name="Set Variable" doc:id="a7bdf8f6-6955-4861-975d-b508c8e5b759" variableName="dishwasherInfo" />
-        <set-variable value="#[payload.data.programs]" doc:name="Set Variable" doc:id="e7a680e1-8344-4652-937b-b5cc689bc0f3" variableName="programsAvailable" />
-        <logger level="INFO" doc:name="Logger" doc:id="7a599208-7ba9-44f3-8e6c-ce754dd2d8b5" message="#[vars.programsAvailable]" />
-        <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
-            <ee:message>
-                <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{
-  status: "200",
-  dishwasherInformation: {
-    name: vars.dishwasherInfo.name,
-    brand: vars.dishwasherInfo.brand,
-    vib: vars.dishwasherInfo.vib,
-    connected: vars.dishwasherInfo.connected,
-    "type": vars.dishwasherInfo["type"],
-    enumber: vars.dishwasherInfo.enumber,
-    haId: vars.dishwasherInfo.haId,
-    programs: vars.programsAvailable
-  },
-  message: "success"
-}]]></ee:set-payload>
-            </ee:message>
-        </ee:transform>
-    </flow>
-	<sub-flow name="retrieveDeviceAndProgramInfo" doc:id="38b2389b-3200-450e-8075-41a0066c0f65">
-		<os:retrieve doc:name="Retrieve" doc:id="5bad9679-8bc8-4f4b-a192-d237c012fe49" key="#[vars.state]" objectStore="Object_store">
+        <set-variable value="#[payload.state]" doc:name="Set Variable" doc:id="4ac928a4-d0fe-4014-b993-131c7c3d0c29" variableName="state" />
+		<set-variable value="#[payload.answer]" doc:name="Set Variable" doc:id="0d27fd69-d665-44ac-8cb8-cfce71e3cd42" variableName="greenTimestamp" />
+		<os:retrieve doc:name="Retrieve" doc:id="fcb70505-1d61-476b-886b-fe31a9044202" key="#[vars.state]" objectStore="Object_store">
 			<os:default-value><![CDATA[defaultvalue]]></os:default-value>
 		</os:retrieve>
-		<set-variable value="#['Bearer ' ++ (payload.access_token)]" doc:name="Set Variable" doc:id="0da1929a-b913-478b-9dc6-8bc406e780d7" variableName="accessToken" />
-		<http:request method="GET" doc:name="Request" doc:id="b76ee540-7508-43db-aa1b-e6cf26f41887" config-ref="Homeconnect_Request_configuration" path="#[p('homeconnect.homeappliancespath') ++&quot;/&quot;++ vars.deviceId]">
-			<http:headers><![CDATA[#[output application/java
+		<os:store doc:name="Store" doc:id="255daef3-2bc8-4193-af17-3b5b51063b66" key="#[vars.state]" objectStore="Object_store">
+			<os:value><![CDATA[#[%dw 2.0
+output application/json
 ---
 {
-	"Authorization" : vars.accessToken
-}]]]></http:headers>
-		</http:request>
-		<set-variable value="#[payload.data['type']]" doc:name="Set Variable" doc:id="2272affd-5e8a-473d-b060-682eb8d5e968" variableName="deviceType" />
-		<http:request method="GET" doc:name="Request" doc:id="bec1126d-99e4-4555-805e-69492319bf91" config-ref="Homeconnect_Request_configuration" path="#[vars.pathHomeConnectDeviceForPrograms]">
+	key: payload.key,
+	deviceId : payload.deviceId,
+	programId : payload.programId,
+	zipCode: payload.zipCode,
+	selectedPeriod: vars.greenTimestamp
+}]]]></os:value>
+		</os:store>
+		<os:retrieve doc:name="Retrieve" doc:id="1c6e2933-746e-46c9-819a-1fc54bed3a38" key="#[vars.state]" objectStore="Object_store">
+			<os:default-value><![CDATA[defaultvalue]]></os:default-value>
+		</os:retrieve>
+		<logger level="INFO" doc:name="Logger" doc:id="e2d0cd6e-c32d-4750-8f91-1faa7a33f008" message="Object is stored : #[payload]" />
+		<ee:transform doc:name="Transform Message" doc:id="43023287-e304-41ee-898f-2cf177a69726" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+import * from dw::core::Strings
+output application/json 
+--- 
+{ 
+ "questionId" : 5, 
+ "question" : "You have finally setup your device for green electricity, thank you so much for supporting green world and environment!",
+ "answerOptions" : [],
+ "state":vars.state 
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<http:request method="POST" doc:name="Request" doc:id="50aa63eb-6c3a-436c-beee-e92d63ce80bf" config-ref="FlowXO_Request_Configuration" path="${flowxo.webhookpath}" />
+		<ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  status: "200",
+  message: "success"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <sub-flow name="retrieveDeviceAndProgramInfo" doc:id="38b2389b-3200-450e-8075-41a0066c0f65">
+        <os:retrieve doc:name="Retrieve" doc:id="5bad9679-8bc8-4f4b-a192-d237c012fe49" key="#[vars.state]" objectStore="Object_store">
+            <os:default-value><![CDATA[defaultvalue]]></os:default-value>
+        </os:retrieve>
+        <os:store doc:name="Store" doc:id="471d2dcc-7dff-4789-9eb9-2e2f769c05fe" key='#[vars.state]' objectStore="Object_store">
+			<os:value ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	key: payload.key,
+	deviceId : vars.deviceId,
+	programId : "",
+	zipCode: "",
+	selectedPeriod: ""
+}]]]></os:value>
+		</os:store>
+		<os:retrieve doc:name="Retrieve" doc:id="c71bb04a-c141-47ed-a356-8152830cea41" key="#[vars.state]" objectStore="Object_store">
+			<os:default-value><![CDATA[defaultvalue]]></os:default-value>
+		</os:retrieve>
+		<set-variable value="#['Bearer ' ++ (payload.key.access_token)]" doc:name="Set Variable" doc:id="0da1929a-b913-478b-9dc6-8bc406e780d7" variableName="accessToken" />
+		<http:request method="GET" doc:name="Request" doc:id="b76ee540-7508-43db-aa1b-e6cf26f41887" config-ref="Homeconnect_Request_configuration" path="#[p('homeconnect.homeappliancespath') ++&quot;/&quot;++ vars.deviceId]">
             <http:headers><![CDATA[#[output application/java
 ---
 {
 	"Authorization" : vars.accessToken
 }]]]></http:headers>
         </http:request>
-		<ee:transform doc:name="Transform Message" doc:id="c2562515-2729-46e4-8869-d551e727d076">
-			<ee:message>
-				<ee:set-payload><![CDATA[%dw 2.0
+        <set-variable value="#[payload.data['type']]" doc:name="Set Variable" doc:id="2272affd-5e8a-473d-b060-682eb8d5e968" variableName="deviceType" />
+        <http:request method="GET" doc:name="Request" doc:id="bec1126d-99e4-4555-805e-69492319bf91" config-ref="Homeconnect_Request_configuration" path="#[vars.pathHomeConnectDeviceForPrograms]">
+            <http:headers><![CDATA[#[output application/java
+---
+{
+	"Authorization" : vars.accessToken
+}]]]></http:headers>
+        </http:request>
+        <ee:transform doc:name="Transform Message" doc:id="c2562515-2729-46e4-8869-d551e727d076">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
 import * from dw::core::Strings
 output application/json 
 --- 
@@ -218,10 +230,10 @@ output application/json
  }),
  "state":vars.state 
 }]]></ee:set-payload>
-			</ee:message>
-		</ee:transform>
-		<http:request method="POST" doc:name="Request" doc:id="10a2fa1a-e930-4f57-b5f0-5ec7b54e3bde" config-ref="FlowXO_Request_Configuration" path="${flowxo.webhookpath}" />
-		<ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+            </ee:message>
+        </ee:transform>
+        <http:request method="POST" doc:name="Request" doc:id="10a2fa1a-e930-4f57-b5f0-5ec7b54e3bde" config-ref="FlowXO_Request_Configuration" path="${flowxo.webhookpath}" />
+        <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
 output application/json
@@ -232,12 +244,12 @@ output application/json
 }]]></ee:set-payload>
             </ee:message>
         </ee:transform>
-	</sub-flow>
-	<sub-flow name="retrieveHomeAppliances" doc:id="377505dd-74b2-48b5-b061-25a2d165c76f">
+    </sub-flow>
+    <sub-flow name="retrieveHomeAppliances" doc:id="377505dd-74b2-48b5-b061-25a2d165c76f">
         <os:retrieve doc:name="Retrieve" doc:id="9d813037-dd65-48db-8ca7-eacac9a0cdca" key="#[vars.state]" objectStore="Object_store">
             <os:default-value><![CDATA[defaultvalue]]></os:default-value>
         </os:retrieve>
-        <set-variable value="#['Bearer ' ++ (payload.access_token)]" doc:name="Set Variable" doc:id="35106d93-22b5-4aea-b825-98f57dcf9e85" variableName="accessToken" />
+        <set-variable value="#['Bearer ' ++ (payload.key.access_token)]" doc:name="Set Variable" doc:id="35106d93-22b5-4aea-b825-98f57dcf9e85" variableName="accessToken" />
         <http:request method="GET" doc:name="Request" doc:id="c0781883-8520-4d94-988a-ae90107afbae" config-ref="Homeconnect_Request_configuration" path="${homeconnect.homeappliancespath}">
             <http:headers><![CDATA[#[output application/java
 ---
@@ -260,13 +272,13 @@ output application/json
             </ee:message>
         </ee:transform>
     </sub-flow>
-	<flow name="post:\findAvailablePrograms:application\json:grunstromindex-homeconnect-integration-api-config">
-        <set-variable value="#[output application/json &#10;--- &#10;p('homeconnect.programspath') replace '&lt;haid&gt;' with payload.answer]" doc:name="Set Variable" doc:id="acb482c6-dd66-4b84-8f3b-b2261eecdedd" variableName="pathHomeConnectDeviceForPrograms" />
-		<set-variable value="#[payload.state]" doc:name="Set Variable" doc:id="b06c169d-0eb3-4568-abd4-7a0f655d9e4d" variableName="state" />
-		<set-variable value="#[payload.answer]" doc:name="Set Variable" doc:id="062bed22-aba1-4869-9df1-06af79c6bce2" variableName="deviceId" />
-		<flow-ref doc:name="Flow Reference" doc:id="8bb4de7a-1c27-4e9f-b547-f1f67d54116d" name="retrieveDeviceAndProgramInfo" />
+    <flow name="post:\findAvailablePrograms:application\json:grunstromindex-homeconnect-integration-api-config">
+        <set-variable value="#[output application/json &#xA;--- &#xA;p('homeconnect.programspath') replace '&lt;haid&gt;' with payload.answer]" doc:name="Set Variable" doc:id="acb482c6-dd66-4b84-8f3b-b2261eecdedd" variableName="pathHomeConnectDeviceForPrograms" />
+        <set-variable value="#[payload.state]" doc:name="Set Variable" doc:id="b06c169d-0eb3-4568-abd4-7a0f655d9e4d" variableName="state" />
+        <set-variable value="#[payload.answer]" doc:name="Set Variable" doc:id="062bed22-aba1-4869-9df1-06af79c6bce2" variableName="deviceId" />
+        <flow-ref doc:name="Flow Reference" doc:id="8bb4de7a-1c27-4e9f-b547-f1f67d54116d" name="retrieveDeviceAndProgramInfo" />
     </flow>
-	<flow name="get:\authenticateHomeConnect:grunstromindex-homeconnect-integration-api-config">
+    <flow name="get:\authenticateHomeConnect:grunstromindex-homeconnect-integration-api-config">
         <logger level="INFO" message="get:\authenticateHomeConnect:grunstromindex-homeconnect-integration-api-config" />
         <set-variable doc:name="Set Variable" doc:id="2897bbc9-d78a-4874-a330-81ef236a33b0" variableName="state" value="#[attributes.queryParams.state]" />
         <set-variable value="authorization_code" doc:name="Set Variable" doc:id="c18b1fdf-304f-4b42-adb9-4aeb8a2cb8aa" variableName="grantType" />
@@ -294,7 +306,125 @@ grant_type:vars.grantType
 }]]]></http:headers>
         </http:request>
         <logger level="INFO" doc:name="Logger" doc:id="07a22b9d-b828-4c11-9229-b744dbde7933" message="payload" />
-        <os:store doc:name="Store" doc:id="6bd6c37f-ea44-4913-8d6c-5a3d0c274ef2" key="#[vars.state]" objectStore="Object_store" />
+        <os:store doc:name="Store" doc:id="6bd6c37f-ea44-4913-8d6c-5a3d0c274ef2" key="#[vars.state]" objectStore="Object_store" >
+			<os:value ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	key: payload,
+	deviceId : "",
+	programId : "",
+	zipCode: "",
+	selectedPeriod: ""
+}]]]></os:value>
+		</os:store>
         <flow-ref doc:name="Flow Reference" doc:id="7fbc259a-2cc0-40df-99a4-db999c4cd611" name="retrieveHomeAppliances" />
+    </flow>
+    <flow name="post:\saveProgramRequestZipCode:application\json:grunstromindex-homeconnect-integration-api-config">
+        <set-variable value="#[payload.state]" doc:name="Set Variable" doc:id="0d1b1c2f-f620-47bc-b3ed-273096031905" variableName="state" />
+		<set-variable value="#[payload.answer]" doc:name="Set Variable" doc:id="d4a8ccd2-49c1-4773-b065-24fba29978dd" variableName="programId" />
+		<os:retrieve doc:name="Retrieve" doc:id="8f13fc2f-097b-48eb-9ff8-a5fcf86ede1e" key="#[vars.state]" objectStore="Object_store">
+			<os:default-value><![CDATA[defaultvalue]]></os:default-value>
+		</os:retrieve>
+		<os:store doc:name="Store" doc:id="bca84dc8-c288-46c6-a38c-dc2c2bcc2c94" key="#[vars.state]" objectStore="Object_store">
+			<os:value><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	key: payload.key,
+	deviceId : payload.deviceId,
+	programId : vars.programId,
+	zipCode: "",
+	selectedPeriod: ""
+}]]]></os:value>
+		</os:store>
+		<os:retrieve doc:name="Retrieve" doc:id="4821ba55-1a96-4414-a6f8-b7b5c63b7ad4" key="#[vars.state]" objectStore="Object_store">
+			<os:default-value><![CDATA[defaultvalue]]></os:default-value>
+		</os:retrieve>
+		<logger level="INFO" doc:name="Logger" doc:id="2ef0f123-dac6-4cee-8fa0-95d164bfcb17" message="Object is stored : #[payload]" />
+		<ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+import * from dw::core::Strings
+output application/json 
+--- 
+{ 
+ "questionId" : 3, 
+ "question" : "Program is setup, would you please share your zipcode for your address to find out available hours for green electric in your city ?",
+ "answerOptions" : [],
+ "state":vars.state 
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<http:request method="POST" doc:name="Request" doc:id="b1259056-e936-4e76-87be-163611f72978" config-ref="FlowXO_Request_Configuration" path="${flowxo.webhookpath}" />
+		<ee:transform doc:name="Transform Message" doc:id="43c6a7d0-2c2e-417b-afe6-8d2507ab123d" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  status: "200",
+  message: "success"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+    </flow>
+	<flow name="post:\checkGrunStromIndexForZipCode:application\json:grunstromindex-homeconnect-integration-api-config">
+        <set-variable value="#[payload.state]" doc:name="Set Variable" doc:id="6324e5a2-1336-4949-b9c4-a1d8793dd9ef" variableName="state" />
+		<set-variable value="#[payload.answer]" doc:name="Set Variable" doc:id="1f3532a6-23bf-4cbf-869e-fa09d7317466" variableName="zipCode" />
+		<os:retrieve doc:name="Retrieve" doc:id="6de317a3-783e-4a8f-a2a9-924938f670f5" key="#[vars.state]" objectStore="Object_store">
+			<os:default-value><![CDATA[defaultvalue]]></os:default-value>
+		</os:retrieve>
+		<os:store doc:name="Store" doc:id="b5cc0fa6-fb38-44a4-976c-c12f3b32c6f5" key="#[vars.state]" objectStore="Object_store">
+			<os:value><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	key: payload.key,
+	deviceId : payload.deviceId,
+	programId : payload.programId,
+	zipCode: vars.zipCode,
+	selectedPeriod: ""
+}]]]></os:value>
+		</os:store>
+		<os:retrieve doc:name="Retrieve" doc:id="02ee4a85-92cc-4fbe-a78e-bce1f4daf7fa" key="#[vars.state]" objectStore="Object_store">
+			<os:default-value><![CDATA[defaultvalue]]></os:default-value>
+		</os:retrieve>
+		<logger level="INFO" doc:name="Logger" doc:id="8466eed8-c6a0-40fe-a04d-e1244f7e4dfa" message="Object is stored : #[payload]" />
+		<ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+import * from dw::core::Strings
+output application/json 
+--- 
+{ 
+ "questionId" : 4, 
+ "question" : "Please select one of the available hours that green electric is available on your area : ",
+ "answerOptions" : [
+ 	{
+ 		key : "1635494400",
+ 		value : "10:00"
+ 	},
+ 	{
+ 		key : "1635498000",
+ 		value : "11:00"
+ 	}
+ ],
+ "state":vars.state 
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<http:request method="POST" doc:name="Request" doc:id="082bd9b8-54b1-41f0-a6c1-af465165e324" config-ref="FlowXO_Request_Configuration" path="${flowxo.webhookpath}" />
+		<ee:transform doc:name="Transform Message" doc:id="7cf0ca9d-d0d0-4776-96ec-41e81f01a64e" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  status: "200",
+  message: "success"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
     </flow>
 </mule>

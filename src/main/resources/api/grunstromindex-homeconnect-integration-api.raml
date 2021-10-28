@@ -35,9 +35,9 @@ baseUri: https://localhost:8081/gis-hc/v1
       application/json:
         example:
           {
-            "refresh-token" : "refresh-token",
-            "telegram-user" : "hayra",
-            "homeconnect-device-id": "homeconnect-device-id"
+            "answer" : "deviceId",
+            "questionId": "5", 
+            "state" : "hayra"
           }
     responses:
       200:
@@ -63,14 +63,43 @@ baseUri: https://localhost:8081/gis-hc/v1
         type: string
       state:
         type: string
-/retrieveAddressZipCode:
+
+/saveProgramRequestZipCode:
   post:
     body:
       application/json:
         example:
           {
             "answer" : "programId",
-            "questionId": "2", 
+            "questionId": "3", 
+            "state" : "hayra"
+          }
+    responses:
+      200:
+        body:
+          application/json:
+            example:
+              {
+                "status": "200",
+                "message" : "success"
+              }
+      500:
+        body:
+          application/json:
+            example:
+              {
+                "status" : "500",
+                "message" : "Internal server error"
+              }
+
+/checkGrunStromIndexForZipCode:
+  post:
+    body:
+      application/json:
+        example:
+          {
+            "answer" : "zipCode",
+            "questionId": "4", 
             "state" : "hayra"
           }
     responses:
