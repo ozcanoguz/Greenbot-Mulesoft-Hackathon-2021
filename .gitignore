@@ -44,5 +44,6 @@ local.properties
 target/
 .mule/**
 .mule/**/*
+src/main/resoıruces/weave/
 .DS_Store
 velocity.log
