@@ -1,3 +1,7 @@
 {
+	"secureProperties": [
+     "homeconnect.clientid",
+     "homeconnect.clientsecret",
+     "secure.key" ],
   "minMuleVersion": "4.4.0"
 }

@@ -1,18 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd  http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+<mule xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd  http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
     <http:listener-config name="grunstromindex-homeconnect-integration-api-httpListenerConfig">
         <http:listener-connection host="0.0.0.0" port="8081" />
     </http:listener-config>
     <apikit:config name="grunstromindex-homeconnect-integration-api-config" api="grunstromindex-homeconnect-integration-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
-    <configuration-properties doc:name="Configuration properties" doc:id="ec3ae532-6202-4ede-ae17-d52e7815ab58" file="config/configuration.yaml" />
+    <!--  <configuration-properties doc:name="Configuration properties" doc:id="4627828b-7567-407f-a48a-406aec765245" file="config/configuration.yaml" /> -->
+    <!--  <configuration-properties doc:name="Configuration properties" doc:id="b92a3aff-3bc6-4a27-b9cc-aacfc25cea2b" file="config/configuration.properties" />  -->
     <http:request-config name="Homeconnect_Request_configuration" doc:name="HTTP Request configuration" doc:id="9ae8ff4a-7a5b-40e3-81d5-df2f111ce4af">
-        <http:request-connection protocol="HTTPS" host="${homeconnect.uri}" />
+        <http:request-connection protocol="HTTPS" host="${secure::homeconnect.uri}" />
     </http:request-config>
     <os:object-store name="Object_store" doc:name="Object store" doc:id="41c1bc86-70bd-46b3-9d5f-4b1a52db3ccc" entryTtl="86400" expirationInterval="3600" />
     <http:request-config name="FlowXO_Request_Configuration" doc:name="HTTP Request configuration" doc:id="7ec3e0ae-5b50-4277-afc4-7b13755a8231">
-        <http:request-connection protocol="HTTPS" host="${flowxo.uri}" />
+        <http:request-connection protocol="HTTPS" host="${secure::flowxo.uri}" />
     </http:request-config>
-    <flow name="grunstromindex-homeconnect-integration-api-main">
+    <secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="cf62a412-a020-4d18-a386-a21a77fd382e" file="config/configuration.properties" key="${secure.key}">
+		<secure-properties:encrypt algorithm="Blowfish" />
+	</secure-properties:config>
+	<global-property doc:name="Global Property" doc:id="2d7f4e63-93ab-4dab-a612-929250898303" name="secure.key" value="replaceMe" />
+	<flow name="grunstromindex-homeconnect-integration-api-main">
         <http:listener config-ref="grunstromindex-homeconnect-integration-api-httpListenerConfig" path="/v1/*">
             <http:response statusCode="#[vars.httpStatus default 200]">
                 <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
@@ -167,7 +172,7 @@ output application/json
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<http:request method="POST" doc:name="Request" doc:id="50aa63eb-6c3a-436c-beee-e92d63ce80bf" config-ref="FlowXO_Request_Configuration" path="${flowxo.webhookpath}" />
+		<http:request method="POST" doc:name="Request" doc:id="50aa63eb-6c3a-436c-beee-e92d63ce80bf" config-ref="FlowXO_Request_Configuration" path="${secure::flowxo.webhookpath}" />
 		<ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
@@ -200,7 +205,7 @@ output application/json
 			<os:default-value><![CDATA[defaultvalue]]></os:default-value>
 		</os:retrieve>
 		<set-variable value="#['Bearer ' ++ (payload.key.access_token)]" doc:name="Set Variable" doc:id="0da1929a-b913-478b-9dc6-8bc406e780d7" variableName="accessToken" />
-		<http:request method="GET" doc:name="Request" doc:id="b76ee540-7508-43db-aa1b-e6cf26f41887" config-ref="Homeconnect_Request_configuration" path="#[p('homeconnect.homeappliancespath') ++&quot;/&quot;++ vars.deviceId]">
+		<http:request method="GET" doc:name="Request" doc:id="b76ee540-7508-43db-aa1b-e6cf26f41887" config-ref="Homeconnect_Request_configuration" path="#[p('secure::homeconnect.homeappliancespath') ++&quot;/&quot;++ vars.deviceId]">
             <http:headers><![CDATA[#[output application/java
 ---
 {
@@ -232,7 +237,7 @@ output application/json
 }]]></ee:set-payload>
             </ee:message>
         </ee:transform>
-        <http:request method="POST" doc:name="Request" doc:id="10a2fa1a-e930-4f57-b5f0-5ec7b54e3bde" config-ref="FlowXO_Request_Configuration" path="${flowxo.webhookpath}" />
+        <http:request method="POST" doc:name="Request" doc:id="10a2fa1a-e930-4f57-b5f0-5ec7b54e3bde" config-ref="FlowXO_Request_Configuration" path="${secure::flowxo.webhookpath}" />
         <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
@@ -250,7 +255,7 @@ output application/json
             <os:default-value><![CDATA[defaultvalue]]></os:default-value>
         </os:retrieve>
         <set-variable value="#['Bearer ' ++ (payload.key.access_token)]" doc:name="Set Variable" doc:id="35106d93-22b5-4aea-b825-98f57dcf9e85" variableName="accessToken" />
-        <http:request method="GET" doc:name="Request" doc:id="c0781883-8520-4d94-988a-ae90107afbae" config-ref="Homeconnect_Request_configuration" path="${homeconnect.homeappliancespath}">
+        <http:request method="GET" doc:name="Request" doc:id="c0781883-8520-4d94-988a-ae90107afbae" config-ref="Homeconnect_Request_configuration" path="${secure::homeconnect.homeappliancespath}">
             <http:headers><![CDATA[#[output application/java
 ---
 {
@@ -258,8 +263,8 @@ output application/json
 }]]]></http:headers>
         </http:request>
         <set-payload value="#[%dw 2.0 &#xA;output application/json &#xA;--- &#xA;{ &#xA; &quot;questionId&quot; : 1, &#xA; &quot;question&quot; : &quot;I have found these devices, please choose the one that you like to use.&quot;, &#xA; &quot;answerOptions&quot; : payload.data.homeappliances map((item,index) -&gt; { &#xA;  key: item.haId, &#xA;  value: item['type'] ++ &quot; (&quot; ++ item.vib ++ &quot; - &quot; ++ item.brand ++ &quot;)&quot; &#xA; }), &#xA; &quot;state&quot;:vars.state &#xA;}]" doc:name="Set Payload" doc:id="87719c9c-9f42-4702-9d1f-b6639376f5ec" />
-        <http:request method="POST" doc:name="Request" doc:id="607f1a92-5a3d-4cb5-9f6e-3a04172df689" config-ref="FlowXO_Request_Configuration" path="${flowxo.webhookpath}" />
-        <!--  <logger level="INFO" doc:name="Logger" doc:id="b0e6cd64-78d2-434f-953b-fc976269172b" message="#[(payload.data.homeappliances filter $[&quot;type&quot;] == &quot;Dishwasher&quot;)[0]]" />  -->
+        <http:request method="POST" doc:name="Request" doc:id="607f1a92-5a3d-4cb5-9f6e-3a04172df689" config-ref="FlowXO_Request_Configuration" path="${secure::flowxo.webhookpath}" />
+        <!--   <logger level="INFO" doc:name="Logger" doc:id="b0e6cd64-78d2-434f-953b-fc976269172b" message="#[(payload.data.homeappliances filter $[&quot;type&quot;] == &quot;Dishwasher&quot;)[0]]" />  -->
         <ee:transform doc:name="Transform Message" doc:id="b678f62d-8fd1-44ab-ad3f-0c9e44362cf2" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
@@ -273,7 +278,7 @@ output application/json
         </ee:transform>
     </sub-flow>
     <flow name="post:\findAvailablePrograms:application\json:grunstromindex-homeconnect-integration-api-config">
-        <set-variable value="#[output application/json &#xA;--- &#xA;p('homeconnect.programspath') replace '&lt;haid&gt;' with payload.answer]" doc:name="Set Variable" doc:id="acb482c6-dd66-4b84-8f3b-b2261eecdedd" variableName="pathHomeConnectDeviceForPrograms" />
+        <set-variable value="#[output application/json &#xA;--- &#xA;p('secure::homeconnect.programspath') replace '&lt;haid&gt;' with payload.answer]" doc:name="Set Variable" doc:id="acb482c6-dd66-4b84-8f3b-b2261eecdedd" variableName="pathHomeConnectDeviceForPrograms" />
         <set-variable value="#[payload.state]" doc:name="Set Variable" doc:id="b06c169d-0eb3-4568-abd4-7a0f655d9e4d" variableName="state" />
         <set-variable value="#[payload.answer]" doc:name="Set Variable" doc:id="062bed22-aba1-4869-9df1-06af79c6bce2" variableName="deviceId" />
         <flow-ref doc:name="Flow Reference" doc:id="8bb4de7a-1c27-4e9f-b547-f1f67d54116d" name="retrieveDeviceAndProgramInfo" />
@@ -283,10 +288,10 @@ output application/json
         <set-variable doc:name="Set Variable" doc:id="2897bbc9-d78a-4874-a330-81ef236a33b0" variableName="state" value="#[attributes.queryParams.state]" />
         <set-variable value="authorization_code" doc:name="Set Variable" doc:id="c18b1fdf-304f-4b42-adb9-4aeb8a2cb8aa" variableName="grantType" />
         <set-variable value="#[attributes.queryParams.code]" doc:name="Set Variable" doc:id="b3a1f1c7-ed40-487f-a121-947dfec880a9" variableName="authCode" />
-        <set-variable value="${homeconnect.clientid}" doc:name="Set Variable" doc:id="9a8b2dec-9c28-4a53-a5b0-3433d31a3f96" variableName="clientId" />
-        <set-variable value="${homeconnect.clientsecret}" doc:name="Set Variable" doc:id="d0ab67ba-f06f-4947-8f02-3b47f4c207ac" variableName="clientSecret" />
-        <set-variable value="${homeconnect.redirectUri}" doc:name="Set Variable" doc:id="1efca129-68ea-48e6-ac1f-930a2160c398" variableName="redirectUri" />
-        <http:request method="POST" doc:name="TokenRequest" doc:id="3ff41a92-a1ff-425d-8ce2-d043d8ff369f" config-ref="Homeconnect_Request_configuration" path="${homeconnect.tokenpath}" sendCorrelationId="AUTO">
+        <set-variable value="${secure::homeconnect.clientid}" doc:name="Set Variable" doc:id="9a8b2dec-9c28-4a53-a5b0-3433d31a3f96" variableName="clientId" />
+        <set-variable value="${secure::homeconnect.clientsecret}" doc:name="Set Variable" doc:id="d0ab67ba-f06f-4947-8f02-3b47f4c207ac" variableName="clientSecret" />
+        <set-variable value="${secure::homeconnect.redirectUri}" doc:name="Set Variable" doc:id="1efca129-68ea-48e6-ac1f-930a2160c398" variableName="redirectUri" />
+        <http:request method="POST" doc:name="TokenRequest" doc:id="3ff41a92-a1ff-425d-8ce2-d043d8ff369f" config-ref="Homeconnect_Request_configuration" path="${secure::homeconnect.tokenpath}" sendCorrelationId="AUTO">
             <http:body><![CDATA[#[%dw 2.0
 
 output application/x-www-form-urlencoded
@@ -356,7 +361,7 @@ output application/json
 }]]></ee:set-payload>
             </ee:message>
         </ee:transform>
-		<http:request method="POST" doc:name="Request" doc:id="b1259056-e936-4e76-87be-163611f72978" config-ref="FlowXO_Request_Configuration" path="${flowxo.webhookpath}" />
+		<http:request method="POST" doc:name="Request" doc:id="b1259056-e936-4e76-87be-163611f72978" config-ref="FlowXO_Request_Configuration" path="${secure::flowxo.webhookpath}" />
 		<ee:transform doc:name="Transform Message" doc:id="43c6a7d0-2c2e-417b-afe6-8d2507ab123d" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
 			<ee:message>
 				<ee:set-payload><![CDATA[%dw 2.0
@@ -414,7 +419,7 @@ output application/json
 }]]></ee:set-payload>
             </ee:message>
         </ee:transform>
-		<http:request method="POST" doc:name="Request" doc:id="082bd9b8-54b1-41f0-a6c1-af465165e324" config-ref="FlowXO_Request_Configuration" path="${flowxo.webhookpath}" />
+		<http:request method="POST" doc:name="Request" doc:id="082bd9b8-54b1-41f0-a6c1-af465165e324" config-ref="FlowXO_Request_Configuration" path="${secure::flowxo.webhookpath}" />
 		<ee:transform doc:name="Transform Message" doc:id="7cf0ca9d-d0d0-4776-96ec-41e81f01a64e" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
